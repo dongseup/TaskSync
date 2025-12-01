@@ -1,0 +1,97 @@
+// apps/api/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // Supabase를 쓸 때 권장되는 설정 (없으면 무시해도 됨)
+}
+
+// 1. 사용자 (Supabase Auth와 별개로 앱 내 프로필 정보 저장)
+model User {
+  id        String   @id @default(uuid()) // 고유 ID
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 관계 정의 (이 사용자가 작성한 것들)
+  projects      Project[] // 내가 만든 프로젝트들
+  assignedIssues Issue[]   @relation("Assignee") // 나에게 할당된 이슈들
+  comments      Comment[] // 내가 쓴 댓글들
+
+  @@map("users") // 실제 DB 테이블 이름은 users로 생성
+}
+
+// 2. 프로젝트
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  key         String   @unique // 예: "JIRA-1" 할 때 그 앞글자
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  issues Issue[]
+
+  @@map("projects")
+}
+
+// 3. 이슈 (할 일)
+model Issue {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      Status   @default(TODO) // 아래 enum 참조
+  priority    Priority @default(MEDIUM) // 아래 enum 참조
+  order       Int      @default(0) // 칸반 보드 내 순서 (Drag & Drop용)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projectId String  @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assigneeId String? @map("assignee_id")
+  assignee   User?   @relation("Assignee", fields: [assigneeId], references: [id])
+
+  comments Comment[]
+
+  @@map("issues")
+}
+
+// 4. 댓글
+model Comment {
+  id      String @id @default(uuid())
+  content String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  issueId String @map("issue_id")
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  authorId String @map("author_id")
+  author   User   @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
+}
+
+// 고정된 값들을 위한 Enum (타입스크립트와 찰떡궁합)
+enum Status {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
