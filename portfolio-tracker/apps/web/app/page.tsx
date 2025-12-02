@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { CreateProjectDialog } from "@/components/create-project-dialog";
 
 // 타입 정의
 interface Project {
@@ -44,7 +45,7 @@ export default async function Page() {
             나의 프로젝트 및 이슈 현황을 관리합니다.
           </p>
         </div>
-        <Button>+ 새 프로젝트 생성</Button>
+        <CreateProjectDialog />
       </div>
 
       <Separator className="my-6" />

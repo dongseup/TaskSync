@@ -6,8 +6,20 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
+
   create(createProjectDto: CreateProjectDto) {
-    return 'This action adds a new project';
+    // DTO에 정의되지 않은 타입이 들어올 수 있으니, 여기서 Prisma 타입에 맞게 매핑
+    // (실무에선 DTO Class Validator를 쓰지만 지금은 약식으로 진행)
+    const { name, description, key, ownerId } = createProjectDto as any;
+
+    return this.prisma.project.create({
+      data: {
+        name,
+        description,
+        key, // 프로젝트 키 (예: PROJ-1)
+        ownerId, // 프로젝트 만든 사람 ID
+      },
+    });
   }
 
   // 프로젝트 목록 전체를 조회하는 메서드
