@@ -16,13 +16,10 @@ export class ProjectsService {
     return this.prisma.project.findMany({
       // 프로젝트 생성자 정보도 함께 가져오도록 설정
       include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          }
-        }
+        owner: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
   }
