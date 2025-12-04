@@ -1,7 +1,7 @@
 // apps/web/components/create-project-dialog.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/lib/supabase"; 
 
 // 폼 데이터 타입 정의
 interface ProjectFormData {
@@ -28,9 +29,22 @@ interface ProjectFormData {
 export function CreateProjectDialog() {
   const [open, setOpen] = useState(false); // 모달 열림/닫힘 상태
   const router = useRouter(); // 데이터 갱신을 위해 사용
+  const [myId, setMyId] = useState<string | null>(null); // 내 ID 저장용
 
   // React Hook Form 설정
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ProjectFormData>();
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<ProjectFormData>();
+
+  // ⭐ 컴포넌트가 열릴 때 내 ID 가져오기
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setMyId(user.id);
+        setValue("ownerId", user.id); // 폼 필드에 값 강제 주입
+      }
+    };
+    checkUser();
+  }, [setValue]);
 
   const onSubmit = async (data: ProjectFormData) => {
     try {
@@ -88,21 +102,24 @@ export function CreateProjectDialog() {
             <Textarea id="description" {...register("description")} placeholder="설명을 입력하세요" />
           </div>
 
-          {/* ⚠️ 임시: 로그인 기능이 없으므로 Owner ID를 직접 입력받음 */}
+          {/* 👇 Owner ID 필드 수정: 이제 숨기거나 읽기 전용으로 변경 */}
           <div className="grid gap-2">
-             <Label htmlFor="ownerId" className="text-blue-600">Owner ID (임시)</Label>
+             <Label>작성자 (자동 입력)</Label>
              <Input 
-                id="ownerId" 
-                {...register("ownerId", { required: true })} 
-                placeholder="Prisma Studio나 리스트에서 ID 복사해서 넣으세요" 
+                disabled 
+                value={myId ? `내 ID: ${myId}` : "로그인이 필요합니다"} 
+                className="bg-gray-100"
              />
+             {/* 실제 값은 hidden input으로 전송 */}
+             <input type="hidden" {...register("ownerId", { required: true })} />
           </div>
 
           <div className="flex justify-end gap-3 mt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>취소</Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "생성 중..." : "생성하기"}
-            </Button>
+             {/* 만약 로그인이 안 되어 있다면 버튼 비활성화 */}
+             {!myId && <span className="text-xs text-red-500 self-center">로그인 후 이용 가능</span>}
+             <Button type="submit" disabled={isSubmitting || !myId}>
+               생성하기
+             </Button>
           </div>
 
         </form>
