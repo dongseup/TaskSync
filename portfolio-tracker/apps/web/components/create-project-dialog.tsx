@@ -49,7 +49,8 @@ export function CreateProjectDialog() {
   const onSubmit = async (data: ProjectFormData) => {
     try {
       // 1. 백엔드로 POST 요청
-      const res = await fetch("http://localhost:4000/projects", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res: Response = await fetch(`${apiUrl}/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
